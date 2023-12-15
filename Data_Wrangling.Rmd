@@ -1,0 +1,174 @@
+---
+title: "Final_data_workflow"
+author: "Cody Wilkinson"
+date: "2023-12-01"
+output: html_document
+---
+
+ selectInput(inputId = 'y',
+                label = "Year in Career",
+                choices = c("2017", 
+                            "2018",
+                            "2019")),
+
+
+```{r setup, include=FALSE}
+KO_2017 <- read.csv("Final Data/2017_KO.csv") %>% na.omit()
+Punt_2018 <- read.csv("Final Data/2018_P.csv") %>% na.omit()
+KO_2018 <- read.csv("Final Data/2018_KO.csv") %>% na.omit()
+Punt_2019 <- read.csv("Final Data/2019_P.csv") %>% na.omit()
+KO_2019 <- read.csv("Final Data/2019_KO.csv") %>% na.omit()
+Punt_total <- read.csv("Final Data/Punts.csv") %>% na.omit()
+KO_total <- read.csv("Final Data/Kickoffs.csv") %>% na.omit()
+Career <- read.csv("Final Data/Summary.csv") %>% na.omit()
+
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+Career_2017%>%
+  ggplot(aes(x=Colgate, y = KO_Yards))+
+  geom_col()
+```
+
+
+```{r}
+unique_games <- unique(Career_2017$Games)
+
+ggplot() +
+  lapply(unique_games, function(game) {
+    ggplot(subset(Career_2017, Games == game), aes(x = Games, y = KO_Yards)) +
+      geom_col() +
+      facet_wrap(~ Games, scales = "free") 
+
+})
+```
+
+
+
+```{r}
+Career%>%
+  ggplot(aes(x = Year, y = KO_Number))+
+  geom_col()+
+  theme_minimal()
+```
+career plot
+```{r}
+library(ggplot2)
+
+# Function to create a column chart with a dynamic y-axis variable
+career_plots <- function(x, y_var) {
+  ggplot(data = Career, aes(x = Year) +
+    geom_col() +
+    theme_minimal()
+}
+career_plots(Career, "Touchback")
+```
+
+```{r}
+Career_2019 <- inner_join(Punt_2019, KO_2019, by = c("Games", "Year"))%>%
+  mutate(Punt_Yards = Yards.x)%>%
+  select(-Yards.x)%>%
+  mutate(Punt_Number = Number.x)%>%
+  select(-Number.x)%>%
+  mutate(Punt_Average = Average.x)%>%
+  select(-Average.x)%>%
+  mutate(Touchback = Touchbacks)%>%
+  select(-Touchbacks)%>%
+  
+  mutate(KO_Yards = Yards.y)%>%
+  select(-Yards.y)%>%
+  mutate(KO_Number = Number.y)%>%
+  select(-Number.y)%>%
+  mutate(KO_Average = Average.y)%>%
+  select(-Average.y)
+  
+Career_2018 <- inner_join(Punt_2018, KO_2018, by = c("Games", "Year"))%>%
+  mutate(Punt_Yards = Yards.x)%>%
+  select(-Yards.x)%>%
+  mutate(Punt_Number = Number.x)%>%
+  select(-Number.x)%>%
+  mutate(Punt_Average = Average.x)%>%
+  select(-Average.x)%>%
+  
+  mutate(KO_Yards = Yards.y)%>%
+  select(-Yards.y)%>%
+  mutate(KO_Number = Number.y)%>%
+  select(-Number.y)%>%
+  mutate(KO_Average = Average.y)%>%
+  select(-Average.y)
+
+Career_2017 <- KO_2017 %>%
+  mutate(KO_Yards = Yards)%>%
+  select(-Yards)%>%
+  mutate(KO_Number = Number)%>%
+  select(-Number)%>%
+  mutate(KO_Average = Average)%>%
+  select(-Average)
+
+Career <- bind_rows(Career_2017, Career_2018, Career_2019)
+```
+
+```{r}
+Punt_2019%>%
+  ggplot(aes(x = Games, y = Average, fill = Average < 41.82))+
+  geom_col(color = 'purple', size = .25)+
+  geom_hline(yintercept = 41.82, linetype = "dashed", color = "red", size = 1) +
+  scale_fill_manual(values = c("purple","black"), name = "",
+                    labels = c("Above", "Below")) +  # Change legend labels
+  labs(title = "Average Punt Yards/Game 2019",
+       x = "Games",
+       y = "Punt Yards")+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+Punt_2018%>%
+  ggplot(aes(x = Games, y = Average, fill = Average < 38.72))+
+  geom_col(color = 'purple', size = .25)+
+  geom_hline(yintercept = 38.72, linetype = "dashed", color = "red", size = 1)+
+  scale_fill_manual(values = c("purple","black"), name = "",
+                    labels = c("Above", "Below")) +  # Change legend labels
+  labs(title = "Average Punt Yards/Game 2018",
+       x = "Games",
+       y = "Punt Yards")+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+Punt_total %>%
+  ggplot(aes(x = reorder(Games, -Yards), y = Yards, fill = Average < 40.66)) +
+  geom_col(position = "dodge", color = 'purple', size = .25) +
+  geom_hline(yintercept = 40.66, linetype = "dashed", color = "red", size = 1) +
+  scale_fill_manual(values = c("purple", "black"), name = "",
+                    labels = c("Above", "Below"), na = FALSE) +
+  labs(title = "Average Punt Yards/Game Career",
+       x = "Games",
+       y = "Punt Yards") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10))
+```
+
+```{r}
+Master_plot <- function(data, x_var, y_var, avg) {
+  ggplot(data, aes(x = reorder({{ x_var }}, -{{ y_var }}), y = {{ y_var }}, fill = Average < avg)) +
+    geom_col(position = "dodge", color = 'purple', size = .25) +
+    geom_hline(yintercept = avg, linetype = "dashed", color = "red", size = 1) +
+    scale_fill_manual(values = c("purple", "black"), name = "",
+                      labels = c("Above", "Below"), na = FALSE) +
+    labs(title = "Average Punt Yards/Game Career",
+         x = as_label(enquo(x_var)),
+         y = as_label(enquo(y_var))) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10))
+}
+Master_plot(KO_total, Games, 4.4)
+```
+
+```{r}
+Average_plot(KO_total, Games, Average)
+```
+
